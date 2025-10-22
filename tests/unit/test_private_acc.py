@@ -1,6 +1,6 @@
 from src.account import Account
 
-class TestAccount:
+class TestAccCreation:
     def test_account_creation(self):
         account = Account("John", "Doe", "12345678910")
         assert account.first_name == "John"
@@ -41,6 +41,58 @@ class TestAccount:
         account_valid_promo_too_old = Account("John", "Doe", "59123456789", "PROMO_XYZ")
         assert account_valid_promo_too_old.balance == 0
         
+class TestAccOperations:
+    def test_send_transfer(self):
+        account = Account("John", "Doe", "1234567819")
+        account.balance = 1010
+        transfer_amount = 1000
+        balance_before = account.balance
+        account.send_transfer(transfer_amount)
+        balance_after = account.balance
         
+        assert balance_after == balance_before - transfer_amount
         
+    def test_receive_transfer(self):
+        account = Account("John", "Doe", "1234567819")
+        transfer_amount = 1000
+        balance_before = account.balance
+        account.receive_transfer(transfer_amount)
+        balance_after = account.balance
+        
+        assert balance_after == balance_before + transfer_amount
+        
+    def test_send_negative_transfer(self):
+        account = Account("John", "Doe", "1234567819")
+        transfer_amount = -10
+        balance_before = account.balance
+        account.send_transfer(transfer_amount)
+        balance_after = account.balance
+        
+        assert balance_after == balance_before
+        
+    def test_receive_negative_transfer(self):
+        account = Account("John", "Doe", "1234567819")
+        transfer_amount = -10
+        balance_before = account.balance
+        account.receive_transfer(transfer_amount)
+        balance_after = account.balance
+        
+        assert balance_after == balance_before
+
+class TestAccExpressOperations:
+    def test_express_transfer_send(self):
+        account = Account("John", "Doe", "12345678910")
+        account.balance = 1000
+        
+        transfer_amount = 900
+        transfer_fee = account.get_express_transfer_fee()
+        balance_before = account.balance
+        account.send_express_transfer(900)
+        
+        assert account.balance == balance_before - (transfer_amount + transfer_fee)
+        
+        account.balance = 100
+        account.send_express_transfer(account.balance)
+        
+        assert account.balance == -account.get_express_transfer_fee()
         
