@@ -1,4 +1,4 @@
-import re
+import math, re
 
 class Utilities:
     @staticmethod
@@ -24,10 +24,42 @@ class Account:
     def __init__(self, first_name, last_name, pesel, promo_code = None):
         self.first_name = first_name
         self.last_name = last_name
-        self.balance = 0
-        self.pesel = pesel if len(pesel) == 11 else "Invalid"
+        self.balance = 0.0
+        self.express_transfer_fee = 1.0
+        self.pesel = (pesel if len(pesel) == 11 else "Invalid") if pesel else None
         if promo_code:
             if Utilities.qualifies_for_promo(promo_code, self.pesel):
                 self.balance += 50
-            
-                
+    def get_express_transfer_fee(self) -> float:
+        return self.express_transfer_fee            
+    
+    def receive_transfer(self, amount: float):
+        if amount <= 0:
+            print(f"Invalid receive_transfer amount: {amount}")
+            return
+        self.balance += amount
+    def send_transfer(self, amount: float):
+        if amount <= 0:
+            print(f"Invalid transfer amount: ${amount}")
+            return
+        if self.balance - amount < 0:
+            print("Balance of ${self.balance} is too small to send a ${amount} transfer.")
+            return
+        
+        self.balance -= amount
+    def send_express_transfer(self, amount: float):
+        if amount <= 0:
+            print(f"Invalid transfer amount of ${amount}")
+        if self.balance - amount < 0:
+            print("Balance of ${self.balance} is too small to send a ${amount} transfer.")
+            return
+        
+        self.balance -= amount + self.get_express_transfer_fee()
+    
+class CompanyAccount(Account):
+    def __init__(self, company_name: str, nip: str):
+        super().__init__(first_name = None, last_name = None, pesel = None, promo_code = None)
+        
+        self.express_transfer_fee = 5.0
+        self.nip = nip if type(nip) == str and len(nip) == 10 else "Invalid"
+        self.company_name = company_name if type(company_name) == str else "Invalid"
