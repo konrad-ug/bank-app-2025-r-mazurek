@@ -30,14 +30,21 @@ class Account:
         if promo_code:
             if Utilities.qualifies_for_promo(promo_code, self.pesel):
                 self.balance += 50
+        self.history: list[float] = []
+        
     def get_express_transfer_fee(self) -> float:
-        return self.express_transfer_fee            
+        return self.express_transfer_fee    
+    
+    def add_to_acc_history(self, transaction):
+        if isinstance(transaction, float) or isinstance(transaction, int):
+            self.history.append(transaction)        
     
     def receive_transfer(self, amount: float):
         if amount <= 0:
             print(f"Invalid receive_transfer amount: {amount}")
             return
         self.balance += amount
+        self.add_to_acc_history(amount)
     def send_transfer(self, amount: float):
         if amount <= 0:
             print(f"Invalid transfer amount: ${amount}")
@@ -47,6 +54,7 @@ class Account:
             return
         
         self.balance -= amount
+        self.add_to_acc_history(-amount)
     def send_express_transfer(self, amount: float):
         if amount <= 0:
             print(f"Invalid transfer amount of ${amount}")
@@ -56,6 +64,8 @@ class Account:
             return
         
         self.balance -= amount + self.get_express_transfer_fee()
+        self.add_to_acc_history(-amount)
+        self.add_to_acc_history(-self.get_express_transfer_fee())
     
 class CompanyAccount(Account):
     def __init__(self, company_name: str, nip: str):

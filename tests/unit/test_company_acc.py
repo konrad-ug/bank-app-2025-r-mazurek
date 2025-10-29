@@ -118,3 +118,20 @@ class TestAccExpressOperations:
         account.send_express_transfer(-10)
         
         assert account.balance == 10
+        
+class TestAccHistory:
+    def test_acc_history(self):
+        account = CompanyAccount("Firma1", "0123456789")
+        account.balance = 1000
+        
+        account.send_transfer(100)
+        
+        assert account.history == [-100.00]
+        
+        account.receive_transfer(150)
+        
+        assert account.history == [-100.00, 150.00]
+        
+        account.send_express_transfer(45)
+        
+        assert account.history == [-100, 150, -45, -account.get_express_transfer_fee()]
