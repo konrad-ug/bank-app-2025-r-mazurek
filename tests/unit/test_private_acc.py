@@ -70,6 +70,16 @@ class TestAccOperations:
         
         assert balance_after == balance_before
         
+    def test_send_transfer_insufficient_funds(self):  
+        account = Account("John", "Doe", "1234567819")
+        transfer_amount = 1000
+        account.balance = 100
+        balance_before = account.balance
+        account.send_transfer(transfer_amount)
+        balance_after = account.balance
+        
+        assert balance_after == balance_before
+        
     def test_receive_negative_transfer(self):
         account = Account("John", "Doe", "1234567819")
         transfer_amount = -10
@@ -95,4 +105,13 @@ class TestAccExpressOperations:
         account.send_express_transfer(account.balance)
         
         assert account.balance == -account.get_express_transfer_fee()
+        
+        account.balance = 10
+        account.send_express_transfer(100)
+        
+        assert account.balance == 10
+        
+        account.send_express_transfer(-10)
+        
+        assert account.balance == 10
         

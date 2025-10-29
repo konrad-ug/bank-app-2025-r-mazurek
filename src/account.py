@@ -50,6 +50,7 @@ class Account:
     def send_express_transfer(self, amount: float):
         if amount <= 0:
             print(f"Invalid transfer amount of ${amount}")
+            return
         if self.balance - amount < 0:
             print("Balance of ${self.balance} is too small to send a ${amount} transfer.")
             return
