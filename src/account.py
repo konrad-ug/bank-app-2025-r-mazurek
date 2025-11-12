@@ -69,15 +69,12 @@ class Account:
         
     def submit_for_loan(self, amount: float) -> bool:
         if not self.pesel:
-            print("Loans are avaiable for private clients only")
             return False
-        if len(self.history) < 3:
-            print("Account has too little history to apply for a loan.")
+        elif len(self.history) < 3:
             return False
-        if len(self.history) < 5:
+        elif len(self.history) < 5:
             for entry in self.history[-3:]:
                 if entry <= 0:
-                    print("For history of less than 5 entries the last 3 transactions must be positive")
                     return False
             self.balance += amount
             return True

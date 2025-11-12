@@ -131,23 +131,51 @@ class TestAccHistory:
         account.send_express_transfer(45)
         
         assert account.history == [-100, 150, -45, -account.get_express_transfer_fee()]
-        
-class TestLoans:
-    def test_loans(self):
-        account = Account("John", "Doe", "12345678910")
 
-        assert account.submit_for_loan(100) == False
-        
-        account.history = [-100, 200, 300]
-        
-        assert account.submit_for_loan(100) == False
-        
-        account.history.append(100)
-        
-        assert account.submit_for_loan(100) == True and account.balance == 100
-        
-        account.history.append(-100)
-        
-        assert account.submit_for_loan(sum(account.history) + 100) == False
-        
-        assert account.submit_for_loan(sum(account.history) - 100) == True and account.balance == 100 + sum(account.history) - 100
+class TestSubmitForLoan:
+    def test_no_pesel(self):
+        account = Account("John", "Doe", pesel=None)
+        assert account.submit_for_loan(100) is False
+
+    def test_history_too_short(self):
+        account = Account("John", "Doe", "12345678910")
+        account.history = [100, 200]
+        assert account.submit_for_loan(50) is False
+
+    def test_last_3_positive(self):
+        account = Account("John", "Doe", "12345678910")
+        account.history = [50, 100, 200] 
+        assert account.submit_for_loan(100) is True
+        assert account.balance == 100
+
+        account.balance = 0
+        account.history = [10, 20, 30, 40]
+        assert account.submit_for_loan(50) is True
+        assert account.balance == 50
+
+    def test_last_3_contains_negative(self):
+        account = Account("John", "Doe", "12345678910")
+        account.history = [100, -50, 200] 
+        assert account.submit_for_loan(50) is False
+
+        account.history = [10, 20, -5, 30] 
+        assert account.submit_for_loan(10) is False
+
+    def test_history_5_or_more_sum_greater(self):
+        account = Account("John", "Doe", "12345678910")
+        account.history = [10, 20, 30, 40, 50] 
+        assert account.submit_for_loan(100) is True
+        assert account.balance == 100
+
+        account.balance = 0
+        account.history = [0, 0, 20, 30, 51]
+        assert account.submit_for_loan(100) is True
+        assert account.balance == 100
+
+    def test_history_5_or_more_sum_not_greater(self):
+        account = Account("John", "Doe", "12345678910")
+        account.history = [10, 10, 10, 10, 10]  
+        assert account.submit_for_loan(100) is False
+
+        account.history = [20, 20, 20, 20, 20] 
+        assert account.submit_for_loan(100) is False
