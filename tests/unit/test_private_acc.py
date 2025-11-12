@@ -131,3 +131,23 @@ class TestAccHistory:
         account.send_express_transfer(45)
         
         assert account.history == [-100, 150, -45, -account.get_express_transfer_fee()]
+        
+class TestLoans:
+    def test_loans(self):
+        account = Account("John", "Doe", "12345678910")
+
+        assert account.submit_for_loan(100) == False
+        
+        account.history = [-100, 200, 300]
+        
+        assert account.submit_for_loan(100) == False
+        
+        account.history.append(100)
+        
+        assert account.submit_for_loan(100) == True and account.balance == 100
+        
+        account.history.append(-100)
+        
+        assert account.submit_for_loan(sum(account.history) + 100) == False
+        
+        assert account.submit_for_loan(sum(account.history) - 100) == True and account.balance == 100 + sum(account.history) - 100

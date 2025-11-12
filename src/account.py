@@ -21,7 +21,7 @@ class Utilities:
     
 
 class Account:
-    def __init__(self, first_name, last_name, pesel, promo_code = None):
+    def __init__(self, first_name: str, last_name: str, pesel: str, promo_code: str = None):
         self.first_name = first_name
         self.last_name = last_name
         self.balance = 0.0
@@ -66,6 +66,29 @@ class Account:
         self.balance -= amount + self.get_express_transfer_fee()
         self.add_to_acc_history(-amount)
         self.add_to_acc_history(-self.get_express_transfer_fee())
+        
+    def submit_for_loan(self, amount: float) -> bool:
+        if not self.pesel:
+            print("Loans are avaiable for private clients only")
+            return False
+        if len(self.history) < 3:
+            print("Account has too little history to apply for a loan.")
+            return False
+        if len(self.history) < 5:
+            for entry in self.history[-3:]:
+                if entry <= 0:
+                    print("For history of less than 5 entries the last 3 transactions must be positive")
+                    return False
+            self.balance += amount
+            return True
+        else:
+            historical_transaction_sum = sum(self.history[-5:])
+            if historical_transaction_sum > amount:
+                self.balance += amount
+                return True
+            else:
+                return False
+        
     
 class CompanyAccount(Account):
     def __init__(self, company_name: str, nip: str):
