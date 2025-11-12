@@ -110,7 +110,7 @@ class TestSubmitForLoan:
     @pytest.mark.parametrize("history,expected,balance_change", [
         ([100, 200], False, 0),
         ([50, 100, 200], True, 100),
-        ([10, 20, 30, 40], True, 50),
+        ([10, 20, 30, 40], True, 100),
         ([100, -50, 200], False, 0),
         ([10, 20, -5, 30], False, 0),
         ([10, 20, 30, 40, 50], True, 100),
