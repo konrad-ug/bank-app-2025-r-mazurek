@@ -18,7 +18,6 @@ class Utilities:
         else:
             print("invalid promo code was given")
         return False
-    
 
 class Account:
     def __init__(self, first_name: str, last_name: str, pesel: str, promo_code: str = None):
@@ -67,7 +66,7 @@ class Account:
         self.add_to_acc_history(-amount)
         self.add_to_acc_history(-self.get_express_transfer_fee())
         
-    def submit_for_loan(self, amount: float) -> bool:
+    def apply_for_loan(self, amount: float) -> bool:
         if not self.pesel:
             return False
         elif len(self.history) < 3:
@@ -94,3 +93,34 @@ class CompanyAccount(Account):
         self.express_transfer_fee = 5.0
         self.nip = nip if type(nip) == str and len(nip) == 10 else "Invalid"
         self.company_name = company_name if type(company_name) == str else "Invalid"
+    
+    def apply_for_loan(self, amount):
+        if self.balance >= amount * 2 and -1775 in self.history:
+            self.balance += amount
+            return True
+        return False
+    
+class AccountRegistry:
+    def __init__(self):
+        self.accounts: list[Account] = []
+    
+    def add_account(self, account: Account):
+        if not isinstance(account, Account) or account in self.accounts:
+            return
+        for acc in self.accounts:
+            if acc.pesel == account.pesel:
+                return
+        self.accounts.append(account)
+    
+    def find_acc_by_pesel(self, pesel: str) -> Account:
+        if not isinstance(pesel, str): return
+        for acc in self.accounts:
+            if acc.pesel == pesel:
+                return acc
+        return None
+    
+    def return_all(self) -> list[Account]:
+        return self.accounts
+    
+    def return_amount(self) -> int:
+        return len(self.accounts)

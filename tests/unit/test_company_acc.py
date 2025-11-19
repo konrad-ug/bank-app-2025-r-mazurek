@@ -86,3 +86,26 @@ class TestAccHistory:
 
         company_account.send_express_transfer(45)
         assert company_account.history == [-100, 150, -45, -company_account.get_express_transfer_fee()]
+        
+class TestBusinessLoans:
+
+    @pytest.mark.parametrize("account_balance,account_history,expected_decision", [
+        (2000, [100, 5000, -1775], True),
+        (200, [100, 100], False),
+        (200, [-1775, 100], False),
+        (2000, [100, 200, -1700], False)
+    ])
+    def test_business_loans(self, company_account, account_balance, account_history, expected_decision):
+        loan_amount = 1000
+        
+        company_account.balance = account_balance
+        company_account.history = account_history
+        
+        if expected_decision is True:
+            assert company_account.apply_for_loan(loan_amount) is True 
+            assert company_account.balance == account_balance + loan_amount
+        else:
+            assert company_account.apply_for_loan(loan_amount) is False
+            assert company_account.balance == account_balance
+            
+        
