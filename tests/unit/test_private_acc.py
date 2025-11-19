@@ -105,7 +105,7 @@ class TestSubmitForLoan:
 
     def test_no_pesel(self):
         account = Account("John", "Doe", pesel=None)
-        assert account.submit_for_loan(100) is False
+        assert account.apply_for_loan(100) is False
 
     @pytest.mark.parametrize("history,expected,balance_change", [
         ([100, 200], False, 0),
@@ -118,9 +118,9 @@ class TestSubmitForLoan:
         ([10, 10, 10, 10, 10], False, 0),
         ([20, 20, 20, 20, 20], False, 0),
     ])
-    def test_submit_for_loan_cases(self, account, history, expected, balance_change):
+    def test_apply_for_loan_cases(self, account, history, expected, balance_change):
         account.history = history
         account.balance = 0
-        result = account.submit_for_loan(100)
+        result = account.apply_for_loan(100)
         assert result is expected
         assert account.balance == balance_change
