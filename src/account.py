@@ -113,11 +113,18 @@ class AccountRegistry:
         self.accounts.append(account)
     
     def find_acc_by_pesel(self, pesel: str) -> Account:
-        if not isinstance(pesel, str): return
+        if not isinstance(pesel, str): return None
         for acc in self.accounts:
             if acc.pesel == pesel:
                 return acc
         return None
+
+    def delete_acc_by_pesel(self, pesel: str):
+        if not isinstance(pesel, str): return
+        for acc in self.accounts:
+            if acc.pesel == pesel:
+                self.accounts.remove(acc)
+                return
     
     def return_all(self) -> list[Account]:
         return self.accounts
