@@ -42,6 +42,9 @@ def create_account():
         return jsonify({"message": f"Company Account {account.company_name} has been created"}), 201
 
     elif "first_name" in data and "last_name" in data and "pesel" in data:
+        if registry.find_acc_by_pesel(data["pesel"]):
+            return jsonify({"message": "Account already exists"}), 409
+
         account = Account(first_name=data["first_name"],
                           last_name=data["last_name"],
                           pesel=data["pesel"],
@@ -51,6 +54,30 @@ def create_account():
         return jsonify({"message": f"Account {account.first_name} {account.last_name} has been created"}), 201
 
     return jsonify({"error": "Invalid data provided"}), 400
+
+@app.route("/api/accounts/<pesel>/transfer", methods=["POST"])
+def handle_transfer(pesel):
+    if not registry.find_acc_by_pesel(pesel):
+        return jsonify({"message": "Account not found"}), 404
+    account: Account = registry.find_acc_by_pesel(pesel)
+    data = request.get_json()
+    amount = float(data.get("amount"))
+    if not amount or amount < 0:
+        return jsonify({"message": "Invalid amount provided"}), 400
+
+    type = data.get("type")
+
+    if type == "incoming":
+        account.receive_transfer(amount)
+    elif type == "outgoing":
+        if account.send_transfer(amount):
+            return jsonify({"message": "Transfer successful"}), 200
+        return jsonify({"message": "Transfer failed"}), 422
+    elif type == "express":
+        account.send_express_transfer(amount)
+    else:
+        return jsonify({"message": "Invalid type provided"}), 400
+    return jsonify({"message": "Zlecenie przyjeto do realizacji"}), 200
 
 
 @app.route("/api/accounts/count", methods=["GET"])

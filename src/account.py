@@ -44,16 +44,17 @@ class Account:
             return
         self.balance += amount
         self.add_to_acc_history(amount)
-    def send_transfer(self, amount: float):
+    def send_transfer(self, amount: float) -> bool:
         if amount <= 0:
             print(f"Invalid transfer amount: ${amount}")
-            return
+            return False
         if self.balance - amount < 0:
             print("Balance of ${self.balance} is too small to send a ${amount} transfer.")
-            return
+            return False
         
         self.balance -= amount
         self.add_to_acc_history(-amount)
+        return True
     def send_express_transfer(self, amount: float):
         if amount <= 0:
             print(f"Invalid transfer amount of ${amount}")

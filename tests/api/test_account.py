@@ -86,3 +86,87 @@ def test_delete_account(created_account):
 
     check_response = requests.get(f"{BASE_URL}/{pesel}")
     assert check_response.status_code == 404
+
+def test_create_duplicate_account(created_account):
+    payload = {
+        "first_name": "Clone",
+        "last_name": "Person",
+        "pesel": created_account["pesel"]
+    }
+
+    response = requests.post(BASE_URL, json=payload)
+
+    assert response.status_code == 409
+    assert "Account already exists" in response.json()["message"]
+
+def test_transfer_incoming(created_account):
+    pesel = created_account["pesel"]
+    transfer_data = {
+        "amount": 1000,
+        "type": "incoming"
+    }
+
+    response = requests.post(f"{BASE_URL}/{pesel}/transfer", json=transfer_data)
+
+    assert response.status_code == 200
+    assert "Zlecenie przyjeto do realizacji" in response.json()["message"]
+
+    get_response = requests.get(f"{BASE_URL}/{pesel}")
+    assert get_response.json()["balance"] == 1000
+
+
+def test_transfer_outgoing_success(created_account):
+    pesel = created_account["pesel"]
+
+    requests.post(f"{BASE_URL}/{pesel}/transfer", json={"amount": 500, "type": "incoming"})
+
+    transfer_data = {
+        "amount": 200,
+        "type": "outgoing"
+    }
+    response = requests.post(f"{BASE_URL}/{pesel}/transfer", json=transfer_data)
+
+    assert response.status_code == 200
+
+    get_response = requests.get(f"{BASE_URL}/{pesel}")
+    assert get_response.json()["balance"] == 300
+
+
+def test_transfer_outgoing_insufficient_funds(created_account):
+    pesel = created_account["pesel"]
+
+    transfer_data = {
+        "amount": 100,
+        "type": "outgoing"
+    }
+
+    response = requests.post(f"{BASE_URL}/{pesel}/transfer", json=transfer_data)
+
+    assert response.status_code == 422
+    assert "Transfer failed" in response.json()["message"]
+
+
+def test_transfer_account_not_found():
+    non_existent_pesel = "99999999999"
+    transfer_data = {
+        "amount": 100,
+        "type": "incoming"
+    }
+
+    response = requests.post(f"{BASE_URL}/{non_existent_pesel}/transfer", json=transfer_data)
+
+    assert response.status_code == 404
+    assert "Account not found" in response.json()["message"]
+
+
+def test_transfer_invalid_type(created_account):
+    pesel = created_account["pesel"]
+    transfer_data = {
+        "amount": 100,
+        "type": "invalid"
+    }
+
+    response = requests.post(f"{BASE_URL}/{pesel}/transfer", json=transfer_data)
+
+    assert response.status_code == 400
+    assert "Invalid type provided" in response.json()["message"]
