@@ -44,16 +44,17 @@ class Account:
             return
         self.balance += amount
         self.add_to_acc_history(amount)
-    def send_transfer(self, amount: float):
+    def send_transfer(self, amount: float) -> bool:
         if amount <= 0:
             print(f"Invalid transfer amount: ${amount}")
-            return
+            return False
         if self.balance - amount < 0:
             print("Balance of ${self.balance} is too small to send a ${amount} transfer.")
-            return
+            return False
         
         self.balance -= amount
         self.add_to_acc_history(-amount)
+        return True
     def send_express_transfer(self, amount: float):
         if amount <= 0:
             print(f"Invalid transfer amount of ${amount}")
@@ -113,11 +114,18 @@ class AccountRegistry:
         self.accounts.append(account)
     
     def find_acc_by_pesel(self, pesel: str) -> Account:
-        if not isinstance(pesel, str): return
+        if not isinstance(pesel, str): return None
         for acc in self.accounts:
             if acc.pesel == pesel:
                 return acc
         return None
+
+    def delete_acc_by_pesel(self, pesel: str):
+        if not isinstance(pesel, str): return
+        for acc in self.accounts:
+            if acc.pesel == pesel:
+                self.accounts.remove(acc)
+                return
     
     def return_all(self) -> list[Account]:
         return self.accounts
