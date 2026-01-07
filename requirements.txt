@@ -1,3 +1,5 @@
 pytest==8.4.2
 coverage==6.5.0
 flask
+requests
+flake8
