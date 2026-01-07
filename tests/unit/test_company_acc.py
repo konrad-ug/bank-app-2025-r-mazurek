@@ -1,8 +1,24 @@
 from src.account import CompanyAccount
 import pytest
+from unittest.mock import patch
 
 @pytest.fixture
-def company_account():
+def mock_gov_api_valid():
+    with patch('src.account.requests.get') as mock_get:
+        mock_get.return_value.status_code = 200
+        mock_get.return_value.json.return_value = {
+            "result": {
+                "subject": {
+                    "statusVat": "Czynny",
+                    "name": "Test Company"
+                },
+                "requestId": "123"
+            }
+        }
+        yield mock_get
+
+@pytest.fixture
+def company_account(mock_gov_api_valid):
     return CompanyAccount("Firma1", "0123456789")
 
 
@@ -13,15 +29,23 @@ class TestAccCreation:
         assert company_account.nip == "0123456789"
         assert company_account.balance == 0
 
-    @pytest.mark.parametrize("company_name,nip,expected_name,expected_nip", [
-        ("Firma1", "01234567890", "Firma1", "Invalid"),
-        (12, "0123456789", "Invalid", "0123456789"),
-        (12, "01234567890", "Invalid", "Invalid"),
-    ])
-    def test_acc_creation_invalid(self, company_name, nip, expected_name, expected_nip):
-        acc = CompanyAccount(company_name, nip)
-        assert acc.company_name == expected_name
-        assert acc.nip == expected_nip
+    def test_acc_creation_invalid_length(self):
+        with patch('src.account.requests.get') as mock_get:
+            acc = CompanyAccount("Firma1", "123")
+            assert acc.nip == "Invalid"
+            mock_get.assert_not_called()
+
+    def test_acc_creation_raises_error_if_not_registered(self):
+        with patch('src.account.requests.get') as mock_get:
+            mock_get.return_value.status_code = 200
+            mock_get.return_value.json.return_value = {
+                "result": {
+                    "subject": None
+                }
+            }
+
+            with pytest.raises(ValueError, match="Company not registered!!"):
+                CompanyAccount("Firma Krzak", "0123456789")
 
 
 class TestAccOperations:
