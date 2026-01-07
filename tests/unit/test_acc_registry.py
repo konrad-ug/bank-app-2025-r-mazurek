@@ -1,5 +1,6 @@
 from src.account import AccountRegistry, Account, CompanyAccount
 import pytest
+from unittest.mock import patch
 
 @pytest.fixture
 def account_registry():
@@ -15,7 +16,8 @@ def other_personal_account():
 
 @pytest.fixture
 def company_account():
-    return CompanyAccount("Budimex", "0123456789")
+    with patch.object(CompanyAccount, 'verifiy_nip_with_gov_api', return_value=True):
+        return CompanyAccount("Budimex", "0123456789")
 
 class TestAccountRegistry:
     

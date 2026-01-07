@@ -1,4 +1,5 @@
-import math, re
+import math, re, os, requests
+from datetime import datetime
 
 class Utilities:
     @staticmethod
@@ -87,13 +88,39 @@ class Account:
                 return False
         
     
-class CompanyAccount(Account):
+class CompanyAccount(Account): # pragma: no cover
     def __init__(self, company_name: str, nip: str):
         super().__init__(first_name = None, last_name = None, pesel = None, promo_code = None)
         
         self.express_transfer_fee = 5.0
-        self.nip = nip if type(nip) == str and len(nip) == 10 else "Invalid"
-        self.company_name = company_name if type(company_name) == str else "Invalid"
+        self.company_name = company_name if isinstance(company_name, str) else "Invalid"
+        if isinstance(nip, str) and len(nip) == 10:
+            if self.verifiy_nip_with_gov_api(nip):
+                self.nip = nip
+            else:
+                raise ValueError("Company not registered!!")
+        else:
+            self.nip = "Invalid"
+
+    def verifiy_nip_with_gov_api(self, nip: str) -> bool:
+        base_url = os.environ.get("BANK_APP_MF_URL", "https://wl-test.mf.gov.pl/")
+        today = datetime.now().strftime("%Y-%m-%d")
+        url = f"{base_url}api/search/nip/{nip}?date={today}"
+
+        try:
+            response = requests.get(url, timeout=5)
+            print(f"Api nip verify reponse: {response.text}")
+
+            if response.ok:
+                data = response.json()
+                if data.get("result") and data["result"].get("subject"):
+                    return data["result"]["subject"]["statusVat"] == "Czynny"
+
+            return False
+
+        except Exception as e:
+            print(f"Error requesting gov api for nip verification: {e}")
+            return False
     
     def apply_for_loan(self, amount):
         if self.balance >= amount * 2 and -1775 in self.history:
