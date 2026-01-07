@@ -1,5 +1,6 @@
 import math, re, os, requests
 from datetime import datetime
+from smtp.smtp import SMTPClient
 
 class Utilities:
     @staticmethod
@@ -86,6 +87,13 @@ class Account:
                 return True
             else:
                 return False
+    def send_history_via_email(self, email: str) -> bool:
+        today = datetime.now().strftime("%Y-%m-%d")
+        if SMTPClient.send(f"Account Transfer History {today}",
+                        f"Personal account history: {self.history}",
+                        email):
+            return True
+        return False
         
     
 class CompanyAccount(Account): # pragma: no cover
@@ -125,6 +133,14 @@ class CompanyAccount(Account): # pragma: no cover
     def apply_for_loan(self, amount):
         if self.balance >= amount * 2 and -1775 in self.history:
             self.balance += amount
+            return True
+        return False
+
+    def send_history_via_email(self, email: str) -> bool:
+        today = datetime.now().strftime("%Y-%m-%d")
+        if SMTPClient.send(f"Account Transfer History {today}",
+                        f"Company account history: {self.history}",
+                        email):
             return True
         return False
     
