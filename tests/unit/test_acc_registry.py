@@ -82,3 +82,13 @@ class TestAccountRegistry:
         account_registry.add_account(other_personal_account)
         
         assert account_registry.return_amount() == 2
+
+    def test_delete_account_by_pesel_success(self, account_registry, personal_account, other_personal_account):
+        account_registry.add_account(personal_account)
+        account_registry.add_account(other_personal_account)
+        account_registry.delete_acc_by_pesel(personal_account.pesel)
+
+        assert not any(account.pesel == personal_account.pesel for account in account_registry.accounts)
+
+    def test_delete_account_by_pesel_not_str(self, account_registry):
+        account_registry.delete_acc_by_pesel(123)
