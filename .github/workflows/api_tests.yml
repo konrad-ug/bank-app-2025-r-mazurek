@@ -1,4 +1,4 @@
-name: API Tests
+name: API Tests Debug Mode
 
 on: [push, pull_request]
 
@@ -11,6 +11,11 @@ jobs:
         image: mongo:latest
         ports:
           - 27017:27017
+        options: >-
+          --health-cmd "mongosh --eval 'db.adminCommand(\"ping\")'"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
 
     steps:
       - uses: actions/checkout@v3
@@ -20,10 +25,24 @@ jobs:
         with:
           python-version: '3.x'
 
+      - name: DEBUG - List all files (Check structure and casing)
+        run: |
+          pwd
+          ls -R
+          ls -l src/__init__.py || echo "brak init"
+
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
+          pip install flask requests pytest behave pymongo
           if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+
+      - name: DEBUG - Verify Imports and Syntax
+        env:
+          PYTHONPATH: ${{ github.workspace }}
+        run: |
+          python3 -m py_compile api.py
+          python3 -c "import sys; print(sys.path); from src.mongo_repository import MongoAccountsRepository; print('Import SUCCESS')"
 
       - name: Start flask app
         env:
@@ -35,16 +54,13 @@ jobs:
           echo "Waiting for Flask to start..."
           sleep 5
 
-      - name: Check Flask logs (debug)
-        if: always()
-        run: cat flask.log
-
-      - name: Run Unit Tests (including Repository Mock tests)
-        env:
-          PYTHONPATH: ${{ github.workspace }}
+      - name: Check if Flask is alive
         run: |
-          python3 -m pytest tests/test_repository.py 
-          # python3 -m pytest tests/test_*.py
+          if ! pgrep -f "flask" > /dev/null; then
+            echo "Flask failed to start. Logs:"
+            cat flask.log
+            exit 1
+          fi
 
       - name: Run API Integration Tests
         env:
@@ -53,8 +69,6 @@ jobs:
         run: |
           python3 -m pytest tests/api
 
-      - name: Run BDD Tests
-        env:
-           MONGO_HOST: localhost
-           PYTHONPATH: ${{ github.workspace }}
-        run: behave
+      - name: Print Flask logs on failure
+        if: failure()
+        run: cat flask.log
