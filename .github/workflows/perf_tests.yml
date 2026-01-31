@@ -24,27 +24,51 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install flask requests pytest behave pymongo
-          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+          
+          REQ_FILE=$(find . -name requirements.txt | head -n 1)
+          if [ -n "$REQ_FILE" ]; then
+             pip install -r "$REQ_FILE"
+          fi
 
-      - name: Start flask and execute Performance tests
+      - name: Auto-locate and Start Flask
         env:
           MONGO_HOST: localhost
-          PYTHONPATH: ${{ github.workspace }}
-          FLASK_APP: api.py
         run: |
-          nohup flask run > flask.log 2>&1 &
+          API_PATH=$(find . -name api.py -type f | head -n 1)
           
-          echo "Waiting for Flask to start..."
-          sleep 5
-          
-          if ! pgrep -f "flask run" > /dev/null; then
-            echo "Flask failed to start! Showing logs:"
-            cat flask.log
+          if [ -z "$API_PATH" ]; then
             exit 1
           fi
 
-          python3 -m pytest tests/perf
+          TARGET_DIR=$(dirname "$API_PATH")
+          cd "$TARGET_DIR"
+          
+          export PYTHONPATH=$(pwd)
+          export FLASK_APP=api.py
+          
+          nohup flask run > /tmp/flask_perf.log 2>&1 &
+          
+          sleep 5
+
+      - name: Run Performance Tests
+        run: |
+          if ! pgrep -f "flask" > /dev/null; then
+            cat /tmp/flask_perf.log
+            exit 1
+          fi
+
+          PERF_DIR=$(find . -type d -name "perf" | head -n 1)
+          
+          if [ -z "$PERF_DIR" ]; then
+             exit 1
+          fi
+          
+          API_PATH=$(find . -name api.py -type f | head -n 1)
+          APP_DIR=$(dirname "$API_PATH")
+          export PYTHONPATH=$APP_DIR
+          
+          python3 -m pytest "$PERF_DIR"
 
       - name: Check Flask logs (on failure)
         if: failure()
-        run: cat flask.log
+        run: cat /tmp/flask_perf.log
