@@ -1,29 +1,74 @@
-name: API Tests
+name: API Tests Debug Mode
 
-on: [push]
+on: [push, pull_request]
 
 jobs:
   test-api:
     runs-on: ubuntu-latest
+
+    services:
+      mongo:
+        image: mongo:latest
+        ports:
+          - 27017:27017
+        options: >-
+          --health-cmd "mongosh --eval 'db.adminCommand(\"ping\")'"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
     steps:
       - uses: actions/checkout@v3
+
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
           python-version: '3.x'
 
+      - name: DEBUG - List all files (Check structure and casing)
+        run: |
+          pwd
+          ls -R
+          ls -l src/__init__.py || echo "brak init"
+
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install -r requirements.txt
+          pip install flask requests pytest behave pymongo
+          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
 
-      - [cite_start]name: Start flask and execute API tests [cite: 23, 29]
+      - name: DEBUG - Verify Imports and Syntax
+        env:
+          PYTHONPATH: ${{ github.workspace }}
         run: |
-          export FLASK_APP=api.py
-          export FLASK_ENV=development
-          export PYTHONPATH=$GITHUB_WORKSPACE
-          flask run &
+          python3 -m py_compile api.py
+          python3 -c "import sys; print(sys.path); from src.mongo_repository import MongoAccountsRepository; print('Import SUCCESS')"
+
+      - name: Start flask app
+        env:
+          MONGO_HOST: localhost
+          PYTHONPATH: ${{ github.workspace }}
+          FLASK_APP: api.py
+        run: |
+          nohup flask run > flask.log 2>&1 &
+          echo "Waiting for Flask to start..."
           sleep 5
-          python3 -m pytest tests/test_account.py 
-          # Uwaga: Ścieżka tests/test_account.py zależy od tego czy przeniosłeś plik do folderu api czy nie.
-          # Jeśli przeniosłeś, użyj: python3 -m pytest tests/api
+
+      - name: Check if Flask is alive
+        run: |
+          if ! pgrep -f "flask" > /dev/null; then
+            echo "Flask failed to start. Logs:"
+            cat flask.log
+            exit 1
+          fi
+
+      - name: Run API Integration Tests
+        env:
+          MONGO_HOST: localhost
+          PYTHONPATH: ${{ github.workspace }}
+        run: |
+          python3 -m pytest tests/api
+
+      - name: Print Flask logs on failure
+        if: failure()
+        run: cat flask.log

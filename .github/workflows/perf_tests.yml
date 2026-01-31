@@ -1,12 +1,20 @@
 name: API Performance Tests
 
-on: [push]
+on: [push, pull_request]
 
 jobs:
   test-perf:
     runs-on: ubuntu-latest
+
+    services:
+      mongo:
+        image: mongo:latest
+        ports:
+          - 27017:27017
+
     steps:
       - uses: actions/checkout@v3
+
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
@@ -15,19 +23,28 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install -r requirements.txt
+          pip install flask requests pytest behave pymongo
+          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
 
       - name: Start flask and execute Performance tests
+        env:
+          MONGO_HOST: localhost
+          PYTHONPATH: ${{ github.workspace }}
+          FLASK_APP: api.py
         run: |
-          export PYTHONPATH=$PYTHONPATH:$(pwd)
-          export FLASK_APP=app/api.py
-          
-          pip install flask pytest requests
-          
           nohup flask run > flask.log 2>&1 &
           
-          sleep 10
+          echo "Waiting for Flask to start..."
+          sleep 5
           
-          cat flask.log
-          
+          if ! pgrep -f "flask run" > /dev/null; then
+            echo "Flask failed to start! Showing logs:"
+            cat flask.log
+            exit 1
+          fi
+
           python3 -m pytest tests/perf
+
+      - name: Check Flask logs (on failure)
+        if: failure()
+        run: cat flask.log
