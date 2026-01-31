@@ -1,4 +1,4 @@
-name: API Tests Debug Mode
+name: API Tests (BankApp/app fix)
 
 on: [push, pull_request]
 
@@ -25,49 +25,48 @@ jobs:
         with:
           python-version: '3.x'
 
-      - name: DEBUG - List all files (Check structure and casing)
-        run: |
-          pwd
-          ls -R
-          ls -l src/__init__.py || echo "brak init"
-
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
           pip install flask requests pytest behave pymongo
-          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
-
-      - name: DEBUG - Verify Imports and Syntax
-        env:
-          PYTHONPATH: ${{ github.workspace }}
-        run: |
-          python3 -m py_compile api.py
-          python3 -c "import sys; print(sys.path); from src.mongo_repository import MongoAccountsRepository; print('Import SUCCESS')"
+          
+          if [ -f requirements.txt ]; then 
+            pip install -r requirements.txt
+          elif [ -f BankApp/app/requirements.txt ]; then
+            pip install -r BankApp/app/requirements.txt
+          fi
 
       - name: Start flask app
         env:
           MONGO_HOST: localhost
-          PYTHONPATH: ${{ github.workspace }}
-          FLASK_APP: api.py
+          PYTHONPATH: ${{ github.workspace }}/BankApp/app
+          FLASK_APP: BankApp/app/api.py
         run: |
+          echo "Uruchamiam aplikację ze ścieżki: BankApp/app/api.py"
+          
           nohup flask run > flask.log 2>&1 &
-          echo "Waiting for Flask to start..."
+          
           sleep 5
 
       - name: Check if Flask is alive
         run: |
           if ! pgrep -f "flask" > /dev/null; then
-            echo "Flask failed to start. Logs:"
+            echo "Flask nie wstał. Logi:"
             cat flask.log
             exit 1
           fi
 
-      - name: Run API Integration Tests
+      - name: Run Unit Tests
         env:
-          MONGO_HOST: localhost
-          PYTHONPATH: ${{ github.workspace }}
+          PYTHONPATH: ${{ github.workspace }}/BankApp/app
         run: |
-          python3 -m pytest tests/api
+          if [ -d tests ]; then
+            python3 -m pytest tests
+          elif [ -d BankApp/app/tests ]; then
+            python3 -m pytest BankApp/app/tests
+          else
+            exit 1
+          fi
 
       - name: Print Flask logs on failure
         if: failure()
