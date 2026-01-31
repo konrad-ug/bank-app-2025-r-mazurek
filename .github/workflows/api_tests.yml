@@ -1,12 +1,25 @@
 name: API Tests
 
-on: [push]
+on: [push, pull_request]
 
 jobs:
   test-api:
     runs-on: ubuntu-latest
+
+    services:
+      mongo:
+        image: mongo:latest
+        ports:
+          - 27017:27017
+        options: >-
+          --health-cmd mongo
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
     steps:
       - uses: actions/checkout@v3
+
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
@@ -15,15 +28,38 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install -r requirements.txt
+          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
 
-      - [cite_start]name: Start flask and execute API tests [cite: 23, 29]
+      - name: Start flask app
+        env:
+          MONGO_HOST: localhost
+          PYTHONPATH: ${{ github.workspace }}
+          FLASK_APP: api.py
         run: |
-          export FLASK_APP=api.py
-          export FLASK_ENV=development
-          export PYTHONPATH=$GITHUB_WORKSPACE
-          flask run &
+          nohup flask run > flask.log 2>&1 &
+          echo "Waiting for Flask to start..."
           sleep 5
-          python3 -m pytest tests/test_account.py 
-          # Uwaga: Ścieżka tests/test_account.py zależy od tego czy przeniosłeś plik do folderu api czy nie.
-          # Jeśli przeniosłeś, użyj: python3 -m pytest tests/api
+
+      - name: Check Flask logs (debug)
+        if: always()
+        run: cat flask.log
+
+      - name: Run Unit Tests (including Repository Mock tests)
+        env:
+          PYTHONPATH: ${{ github.workspace }}
+        run: |
+          python3 -m pytest tests/test_repository.py 
+          # python3 -m pytest tests/test_*.py
+
+      - name: Run API Integration Tests
+        env:
+          MONGO_HOST: localhost
+          PYTHONPATH: ${{ github.workspace }}
+        run: |
+          python3 -m pytest tests/test_account.py
+
+      - name: Run BDD Tests
+        env:
+           MONGO_HOST: localhost
+           PYTHONPATH: ${{ github.workspace }}
+        run: behave

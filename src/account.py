@@ -32,6 +32,16 @@ class Account:
             if Utilities.qualifies_for_promo(promo_code, self.pesel):
                 self.balance += 50
         self.history: list[float] = []
+
+    def to_dict(self):
+        return {
+            "first_name": self.first_name,
+            "last_name": self.last_name,
+            "pesel": self.pesel,
+            "balance": self.balance,
+            "history": self.history,
+            "type": "personal"
+        }
         
     def get_express_transfer_fee(self) -> float:
         return self.express_transfer_fee    
@@ -110,6 +120,15 @@ class CompanyAccount(Account): # pragma: no cover
         else:
             self.nip = "Invalid"
 
+    def to_dict(self):
+        return {
+            "company_name": self.company_name,
+            "nip": self.nip,
+            "balance": self.balance,
+            "history": self.history,
+            "type": "company"
+        }
+
     def verifiy_nip_with_gov_api(self, nip: str) -> bool:
         base_url = os.environ.get("BANK_APP_MF_URL", "https://wl-test.mf.gov.pl/")
         today = datetime.now().strftime("%Y-%m-%d")
@@ -147,6 +166,9 @@ class CompanyAccount(Account): # pragma: no cover
 class AccountRegistry:
     def __init__(self):
         self.accounts: list[Account] = []
+
+    def clear(self):
+        self.accounts = []
     
     def add_account(self, account: Account):
         if not isinstance(account, Account) or account in self.accounts:

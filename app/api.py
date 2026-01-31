@@ -1,8 +1,15 @@
 from flask import jsonify, request, Flask
 from src.account import Account, CompanyAccount, AccountRegistry
+from src.mongo_repository import MongoAccountsRepository
 
 app = Flask(__name__)
 registry = AccountRegistry()
+
+try:
+    repo = MongoAccountsRepository()
+except:
+    print("Warning: Could not connect to MongoDB")
+    repo = None
 
 
 @app.route("/api/accounts", methods=["GET"])
@@ -133,6 +140,30 @@ def delete_account(pesel):
 
     registry.delete_acc_by_pesel(pesel)
     return jsonify({"message": f"Account {pesel} has been deleted"}), 200
+
+
+@app.route("/api/accounts/save", methods=["POST"])
+def save_accounts():
+    if not repo:
+        return jsonify({"message": "Database not configured"}), 503
+
+    repo.save_all(registry.return_all())
+    return jsonify({"message": "Registry saved to database"}), 200
+
+
+@app.route("/api/accounts/load", methods=["POST"])
+def load_accounts():
+    if not repo:
+        return jsonify({"message": "Database not configured"}), 503
+
+    registry.clear()
+
+    loaded_accounts = repo.load_all()
+
+    for acc in loaded_accounts:
+        registry.add_account(acc)
+
+    return jsonify({"message": f"Loaded {len(loaded_accounts)} accounts from database"}), 200
 
 
 if __name__ == '__main__':
