@@ -19,9 +19,15 @@ jobs:
 
       - name: Start flask and execute Performance tests
         run: |
-          export FLASK_APP=api.py
-          export FLASK_ENV=development
-          export PYTHONPATH=$GITHUB_WORKSPACE
-          flask run &
-          sleep 5
+          export PYTHONPATH=$PYTHONPATH:$(pwd)
+          export FLASK_APP=app/api.py
+          
+          pip install flask pytest requests
+          
+          nohup flask run > flask.log 2>&1 &
+          
+          sleep 10
+          
+          cat flask.log
+          
           python3 -m pytest tests/perf
