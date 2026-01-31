@@ -1,4 +1,4 @@
-name: API Tests (BankApp/app fix)
+name: API Tests (Fix Path)
 
 on: [push, pull_request]
 
@@ -30,42 +30,41 @@ jobs:
           python -m pip install --upgrade pip
           pip install flask requests pytest behave pymongo
           
-          if [ -f requirements.txt ]; then 
-            pip install -r requirements.txt
-          elif [ -f BankApp/app/requirements.txt ]; then
+          if [ -f BankApp/app/requirements.txt ]; then
             pip install -r BankApp/app/requirements.txt
+          elif [ -f requirements.txt ]; then
+             pip install -r requirements.txt
           fi
 
       - name: Start flask app
         env:
           MONGO_HOST: localhost
-          PYTHONPATH: ${{ github.workspace }}/BankApp/app
-          FLASK_APP: BankApp/app/api.py
         run: |
-          echo "Uruchamiam aplikację ze ścieżki: BankApp/app/api.py"
+          echo "Wchodzę do katalogu aplikacji..."
+          cd BankApp/app
           
-          nohup flask run > flask.log 2>&1 &
+          echo "Ustawiam FLASK_APP=api.py"
+          export FLASK_APP=api.py
+          
+          nohup flask run > ../../flask.log 2>&1 &
           
           sleep 5
 
       - name: Check if Flask is alive
         run: |
           if ! pgrep -f "flask" > /dev/null; then
-            echo "Flask nie wstał. Logi:"
+            echo "Flask nie wstał! Oto logi:"
             cat flask.log
             exit 1
           fi
-
       - name: Run Unit Tests
         env:
           PYTHONPATH: ${{ github.workspace }}/BankApp/app
         run: |
-          if [ -d tests ]; then
-            python3 -m pytest tests
-          elif [ -d BankApp/app/tests ]; then
+          if [ -d BankApp/app/tests ]; then
             python3 -m pytest BankApp/app/tests
           else
-            exit 1
+            python3 -m pytest tests
           fi
 
       - name: Print Flask logs on failure
