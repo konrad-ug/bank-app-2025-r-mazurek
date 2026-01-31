@@ -4,4 +4,4 @@ flask
 requests
 flake8
 behave
-pymango
+pymongo
