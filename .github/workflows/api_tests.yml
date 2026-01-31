@@ -51,7 +51,7 @@ jobs:
           MONGO_HOST: localhost
           PYTHONPATH: ${{ github.workspace }}
         run: |
-          python3 -m pytest tests/test_account.py
+          python3 -m pytest tests/api
 
       - name: Run BDD Tests
         env:
